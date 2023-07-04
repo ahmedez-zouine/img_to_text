@@ -1,0 +1,66 @@
+import React, { useState } from 'react';
+import { View, Button, Text, Image } from 'react-native';
+import Tesseract from 'tesseract.js';
+import RNFS from 'react-native-fs';
+
+
+
+const App = () => {
+  const [text, setText] = useState('');
+  const [imagePath, setImagePath] = useState('');
+
+  const handleImageSelection = async () => {
+    try {
+      const response = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        quality: 1,
+      });
+
+      if (!response.cancelled) {
+        const path = `${RNFS.DocumentDirectoryPath}/image.jpg`;
+        await RNFS.copyFile(response.uri, path);
+        setImagePath(path);
+      }
+    } catch (error) {
+      console.error('Error selecting image:', error);
+    }
+  };
+
+  const extractTextFromImage = async (imagePath) => {
+    try {
+      const imageUri = `file://${imagePath}`;
+      
+      await Tesseract.recognize(imageUri, 'LANG_ENGLISH')
+        .then((result) => {
+          setText(result.text);
+        })
+        .catch((error) => {
+          console.error('Error extracting text:', error);
+        });
+    } catch (error) {
+      console.error('Error extracting text:', error);
+    }
+  };
+
+  const handleTextExtraction = () => {
+    if (imagePath) {
+      extractTextFromImage(imagePath);
+    }
+  };
+
+  return (
+    <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+      <Button title="Select Image" onPress={handleImageSelection} />
+      {imagePath && (
+        <>
+          <Image source={{ uri: `file://${imagePath}` }} style={{ width: 200, height: 200, marginVertical: 20 }} />
+          <Button title="Extract Text" onPress={handleTextExtraction} />
+        </>
+      )}
+      <Text>{text}</Text>
+    </View>
+  );
+};
+
+export default App;
